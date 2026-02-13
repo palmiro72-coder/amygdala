@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AMYGDALA • Simulação Neural</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #080810;
+      color: #e8eaf0;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    
+    /* ===== BACKGROUND ===== */
+    .bg-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background: 
+        radial-gradient(ellipse 800px 600px at 50% 50%, rgba(60, 80, 180, 0.15), transparent),
+        radial-gradient(ellipse 600px 400px at 30% 70%, rgba(100, 60, 150, 0.1), transparent),
+        radial-gradient(ellipse 500px 300px at 70% 30%, rgba(40, 100, 160, 0.08), transparent),
+        linear-gradient(180deg, #05060a, #0a0c14, #080810);
+    }
+    
+    #particles {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+    
+    /* ===== MAIN CONTAINER ===== */
+    .container {
+      position: relative;
+      z-index: 2;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    /* ===== HEADER ===== */
+    header {
+      background: linear-gradient(180deg, rgba(30, 35, 50, 0.9), rgba(20, 25, 40, 0.85));
+      border: 1px solid rgba(100, 130, 180, 0.25);
+      border-radius: 16px;
+      padding: 14px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      backdrop-filter: blur(20px);
+      margin-bottom: 16px;
+    }
+    
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 20px;
+      font-weight: 600;
+    }
+    
+    .logo-icon {
+      font-size: 22px;
+      opacity: 0.9;
+    }
+    
+    .logo span {
+      color: rgba(255, 255, 255, 0.5);
+      font-weight: 400;
+    }
+    
+    .header-icons {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .header-icon {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(100, 130, 180, 0.2);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .header-icon:hover {
+      background: rgba(100, 130, 180, 0.15);
+      border-color: rgba(100, 130, 180, 0.4);
+    }
+    
+    /* ===== MAIN LAYOUT ===== */
+    .main-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 320px 1fr 280px;
+      grid-template-rows: auto 1fr auto;
+      gap: 16px;
+    }
+    
+    @media (max-width: 1100px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    /* ===== GLASS CARD ===== */
+    .card {
+      background: linear-gradient(180deg, rgba(25, 30, 45, 0.85), rgba(15, 20, 35, 0.9));
+      border: 1px solid rgba(100, 130, 180, 0.2);
+      border-radius: 16px;
+      padding: 16px;
+      backdrop-filter: blur(15px);
+    }
+    
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.85);
+      margin-bottom: 12px;
+      letter-spacing: 0.3px;
+    }
+    
+    /* ===== LEFT COLUMN ===== */
+    .left-col {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    
+    /* Input Card */
+    .input-card textarea {
+      width: 100%;
+      height: 60px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(100, 130, 180, 0.25);
+      border-radius: 10px;
+      padding: 12px;
+      color: #fff;
+      font-family: inherit;
+      font-size: 14px;
+      resize: none;
+      margin-bottom: 8px;
+    }
+    
+    .input-card textarea::placeholder {
+      color: rgba(255, 255, 255, 0.4);
+    }
+    
+    .input-card textarea:focus {
+      outline: none;
+      border-color: rgba(100, 150, 220, 0.5);
+    }
+    
+    .input-hint {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.4);
+      margin-bottom: 12px;
+    }
+    
+    .btn-process {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(180deg, #2563eb, #1d4ed8);
+      border: 1px solid rgba(59, 130, 246, 0.5);
+      border-radius: 10px;
+      color: #fff;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .btn-process:hover {
+      background: linear-gradient(180deg, #3b82f6, #2563eb);
+      transform: translateY(-1px);
+      box-shadow: 0 8px 25px rgba(37, 99, 235, 0.3);
+    }
+    
+    /* ===== NEURAL VISUALIZATION ===== */
+    .neural-card {
+      grid-column: 1 / -1;
+      grid-row: 2;
+      min-height: 380px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    @media (min-width: 1100px) {
+      .neural-card {
+        grid-column: 1 / -1;
+        grid-row: 2;
+      }
+    }
+    
+    .neural-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+    
+    /* Brain glow */
+    .brain-glow {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 280px;
+      height: 220px;
+      background: radial-gradient(ellipse, rgba(255, 150, 100, 0.2) 0%, rgba(255, 100, 80, 0.1) 30%, transparent 70%);
+      filter: blur(30px);
+      animation: brainPulse 3s ease-in-out infinite;
+    }
+    
+    @keyframes brainPulse {
+      0%, 100% { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
+      50% { opacity: 0.9; transform: translate(-50%, -50%) scale(1.1); }
+    }
+    
+    .brain-image {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 200px;
+      height: 160px;
+      background: radial-gradient(ellipse at 50% 40%, rgba(255, 200, 180, 0.25) 0%, rgba(200, 150, 140, 0.15) 40%, transparent 70%);
+      border-radius: 50% 50% 45% 45%;
+      filter: drop-shadow(0 0 40px rgba(255, 150, 100, 0.3));
+    }
+    
+    /* SVG connections */
+    .neural-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+    
+    /* Neural nodes */
+    .node {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      transform: translate(-50%, -50%);
+      z-index: 10;
+    }
+    
+    .node-bubble {
+      background: rgba(10, 15, 25, 0.85);
+      border: 1px solid rgba(150, 180, 220, 0.3);
+      border-radius: 12px;
+      padding: 8px 16px;
+      text-align: center;
+      backdrop-filter: blur(10px);
+    }
+    
+    .node-name {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    
+    .node-status {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.6);
+      margin-top: 2px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .node-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.15), rgba(0, 0, 0, 0.3));
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+    }
+    
+    /* Node positions */
+    .node-entrada { left: 12%; top: 50%; }
+    .node-talamo { left: 32%; top: 55%; }
+    .node-hipocampo { left: 50%; top: 78%; }
+    .node-amigdala { left: 72%; top: 50%; }
+    .node-saida { left: 92%; top: 50%; }
+    
+    /* Amygdala special styling */
+    .node-amigdala .node-bubble {
+      background: linear-gradient(135deg, rgba(180, 60, 40, 0.7), rgba(120, 40, 30, 0.8));
+      border-color: rgba(255, 100, 80, 0.5);
+    }
+    
+    .node-amigdala .node-icon {
+      background: radial-gradient(circle at 30% 30%, rgba(255, 120, 100, 0.4), rgba(180, 60, 40, 0.6));
+      border-color: rgba(255, 150, 120, 0.5);
+      box-shadow: 0 0 30px rgba(255, 100, 80, 0.4);
+    }
+    
+    .amygdala-status {
+      background: linear-gradient(135deg, #dc2626, #b91c1c);
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 4px;
+    }
+    
+    /* ===== RIGHT COLUMN ===== */
+    .right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    
+    /* Signal Card */
+    .signal-card {
+      text-align: center;
+      padding: 20px 16px;
+    }
+    
+    .signal-display {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(100, 130, 180, 0.2);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    
+    .signal-icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 10px;
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+    
+    .signal-name {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+    }
+    
+    .signal-state {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.5);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    /* Memory Card */
+    .memory-list {
+      list-style: none;
+    }
+    
+    .memory-list li {
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(100, 130, 180, 0.1);
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.8);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .memory-list li::before {
+      content: '›';
+      color: rgba(100, 150, 220, 0.6);
+      font-weight: bold;
+    }
+    
+    .memory-list li:last-child {
+      border-bottom: none;
+    }
+    
+    /* Controls Card */
+    .controls-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    
+    .ctrl-btn {
+      padding: 8px 14px;
+      border-radius: 20px;
+      border: none;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    
+    .ctrl-btn.neutro {
+      background: linear-gradient(135deg, #059669, #047857);
+      color: #fff;
+    }
+    
+    .ctrl-btn.prioridade {
+      background: linear-gradient(135deg, #d97706, #b45309);
+      color: #fff;
+    }
+    
+    .ctrl-btn.urgente {
+      background: linear-gradient(135deg, #dc2626, #b91c1c);
+      color: #fff;
+    }
+    
+    .ctrl-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+    
+    .ctrl-hint {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.4);
+      line-height: 1.4;
+    }
+    
+    /* ===== BOTTOM ROW ===== */
+    .bottom-row {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: 1fr 1.5fr;
+      gap: 16px;
+    }
+    
+    @media (max-width: 800px) {
+      .bottom-row {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    /* Keywords */
+    .keywords-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    
+    .keyword {
+      padding: 6px 12px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(100, 130, 180, 0.25);
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+    
+    /* Metrics */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    
+    .metric {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(100, 130, 180, 0.15);
+      border-radius: 12px;
+      padding: 14px;
+      text-align: center;
+    }
+    
+    .metric-label {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    
+    .metric-value {
+      font-size: 32px;
+      font-weight: 800;
+    }
+    
+    .metric-limbic .metric-value { color: #60a5fa; }
+    .metric-cortical .metric-value { color: #a78bfa; }
+    .metric-prefrontal .metric-value { color: #f472b6; }
+    
+    /* ===== ANIMATIONS ===== */
+    .pulse {
+      animation: nodePulse 0.6s ease-in-out infinite;
+    }
+    
+    @keyframes nodePulse {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); }
+      50% { transform: translate(-50%, -50%) scale(1.08); }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-layer"></div>
+  <canvas id="particles"></canvas>
+  
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <div class="logo">
+        <span class="logo-icon">⚙️</span>
+        Simulação Neural: <span>Processamento Emocional</span>
+      </div>
+      <div class="header-icons">
+        <div class="header-icon">👤</div>
+        <div class="header-icon">✉️</div>
+        <div class="header-icon">☰</div>
+      </div>
+    </header>
+    
+    <!-- Main Grid -->
+    <div class="main-grid">
+      <!-- Left Column -->
+      <div class="left-col">
+        <div class="card input-card">
+          <div class="card-title">Entrada de Texto</div>
+          <textarea id="inputText" placeholder="Digite um texto..."></textarea>
+          <div class="input-hint">Ex.: URGÊNCIA: perigo iminente, preciso de ajuda agora!</div>
+          <button class="btn-process" id="btnProcess">PROCESSAR</button>
+        </div>
+      </div>
+      
+      <!-- Neural Visualization -->
+      <div class="card neural-card">
+        <div class="neural-container" id="neuralNet">
+          <!-- SVG Lines -->
+          <svg class="neural-svg" id="neuralSvg"></svg>
+          
+          <!-- Brain glow -->
+          <div class="brain-glow"></div>
+          <div class="brain-image"></div>
+          
+          <!-- Nodes -->
+          <div class="node node-entrada" id="nodeEntrada">
+            <div class="node-bubble">
+              <div class="node-name">ENTRADA</div>
+            </div>
+            <div class="node-icon">👁️</div>
+          </div>
+          
+          <div class="node node-talamo" id="nodeTalamo">
+            <div class="node-bubble">
+              <div class="node-name">TÁLAMO</div>
+            </div>
+            <div class="node-icon">🎯</div>
+          </div>
+          
+          <div class="node node-hipocampo" id="nodeHipocampo">
+            <div class="node-bubble">
+              <div class="node-name">HIPOCAMPO</div>
+            </div>
+            <div class="node-icon">🗃️</div>
+          </div>
+          
+          <div class="node node-amigdala" id="nodeAmigdala">
+            <div class="node-bubble">
+              <div class="node-name">AMÍGDALA</div>
+              <div class="amygdala-status" id="amygdalaStatus">⚡ Stress Intenso</div>
+            </div>
+            <div class="node-icon">🔥</div>
+          </div>
+          
+          <div class="node node-saida" id="nodeSaida">
+            <div class="node-bubble">
+              <div class="node-name">SAÍDA</div>
+            </div>
+            <div class="node-icon">⚠️</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Right Column -->
+      <div class="right-col">
+        <div class="card signal-card">
+          <div class="card-title">Sinal Detectado</div>
+          <div class="signal-display">
+            <div class="signal-icon" id="signalIcon">⚡</div>
+            <div class="signal-name" id="signalName">NOREPINEFRINA</div>
+            <div class="signal-state" id="signalState">ESTADO DE ALERTA</div>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-title">Memória Recente</div>
+          <ul class="memory-list" id="memoryList">
+            <li>Perigo iminente!</li>
+            <li>Situação crítica!</li>
+            <li>Aviso urgente!</li>
+            <li>Escape imediato!</li>
+            <li>Alta tensão!</li>
+          </ul>
+        </div>
+        
+        <div class="card">
+          <div class="card-title">Controles</div>
+          <div class="controls-grid">
+            <button class="ctrl-btn neutro" data-mode="neutro">🧘 Neutro</button>
+            <button class="ctrl-btn prioridade" data-mode="prioridade">⚡ Prioridade</button>
+            <button class="ctrl-btn urgente" data-mode="urgente">🔥 Urgente</button>
+          </div>
+          <div class="ctrl-hint">Clique em um preset para preencher o texto e processar o fluxo.</div>
+        </div>
+      </div>
+      
+      <!-- Bottom Row -->
+      <div class="bottom-row">
+        <div class="card">
+          <div class="card-title">Palavras-Chave Identificadas</div>
+          <div class="keywords-list" id="keywordsList">
+            <span class="keyword">URGÊNCIA</span>
+            <span class="keyword">PERIGO</span>
+            <span class="keyword">ALERTA</span>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-title">Métricas do Sistema</div>
+          <div class="metrics-grid">
+            <div class="metric metric-limbic">
+              <div class="metric-label">🧠 Límbico</div>
+              <div class="metric-value" id="metricLimbic">42</div>
+            </div>
+            <div class="metric metric-cortical">
+              <div class="metric-label">🔮 Cortical</div>
+              <div class="metric-value" id="metricCortical">18</div>
+            </div>
+            <div class="metric metric-prefrontal">
+              <div class="metric-label">🎭 Pré-frontal</div>
+              <div class="metric-value" id="metricPrefrontal">25</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // ===== PARTICLES =====
+    const canvas = document.getElementById('particles');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    
+    class Particle {
+      constructor() {
+        this.reset();
+      }
+      reset() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.size = Math.random() * 2 + 0.5;
+        this.speedX = (Math.random() - 0.5) * 0.3;
+        this.speedY = (Math.random() - 0.5) * 0.3;
+        this.opacity = Math.random() * 0.4 + 0.1;
+      }
+      update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+        if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+      }
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(150, 180, 255, ${this.opacity})`;
+        ctx.fill();
+      }
+    }
+    
+    for (let i = 0; i < 80; i++) particles.push(new Particle());
+    
+    function animateParticles() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(p => { p.update(); p.draw(); });
+      
+      // Connect nearby particles
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 100) {
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.strokeStyle = `rgba(150, 180, 255, ${0.08 * (1 - dist / 100)})`;
+            ctx.stroke();
+          }
+        }
+      }
+      requestAnimationFrame(animateParticles);
+    }
+    animateParticles();
+    
+    // ===== NEURAL LINES =====
+    const svg = document.getElementById('neuralSvg');
+    const neuralNet = document.getElementById('neuralNet');
+    
+    const nodeElements = {
+      entrada: document.getElementById('nodeEntrada'),
+      talamo: document.getElementById('nodeTalamo'),
+      hipocampo: document.getElementById('nodeHipocampo'),
+      amigdala: document.getElementById('nodeAmigdala'),
+      saida: document.getElementById('nodeSaida')
+    };
+    
+    function getNodeCenter(el) {
+      const rect = el.getBoundingClientRect();
+      const containerRect = neuralNet.getBoundingClientRect();
+      return {
+        x: rect.left + rect.width / 2 - containerRect.left,
+        y: rect.top + rect.height / 2 - containerRect.top
+      };
+    }
+    
+    let currentMode = 'urgent';
+    
+    function drawConnections(mode = 'urgent') {
+      const w = neuralNet.clientWidth;
+      const h = neuralNet.clientHeight;
+      svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+      svg.innerHTML = '';
+      
+      const pos = {
+        E: getNodeCenter(nodeElements.entrada),
+        T: getNodeCenter(nodeElements.talamo),
+        H: getNodeCenter(nodeElements.hipocampo),
+        A: getNodeCenter(nodeElements.amigdala),
+        S: getNodeCenter(nodeElements.saida)
+      };
+      
+      const connections = [
+        ['E', 'T'], ['T', 'H'], ['T', 'A'], ['H', 'A'], ['A', 'S']
+      ];
+      
+      const colors = {
+        urgent: { line: 'rgba(255, 120, 80, 0.6)', glow: 'rgba(255, 100, 60, 0.25)', dot: 'rgba(255, 150, 100, 1)' },
+        prioridade: { line: 'rgba(250, 180, 50, 0.6)', glow: 'rgba(250, 180, 50, 0.2)', dot: 'rgba(255, 200, 100, 1)' },
+        neutro: { line: 'rgba(100, 150, 220, 0.5)', glow: 'rgba(100, 150, 220, 0.15)', dot: 'rgba(150, 180, 255, 1)' }
+      };
+      
+      const c = colors[mode] || colors.neutro;
+      
+      connections.forEach(([from, to]) => {
+        const p1 = pos[from];
+        const p2 = pos[to];
+        const midX = (p1.x + p2.x) / 2;
+        const midY = (p1.y + p2.y) / 2 - 20;
+        
+        // Glow
+        const glow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        glow.setAttribute('d', `M ${p1.x} ${p1.y} Q ${midX} ${midY} ${p2.x} ${p2.y}`);
+        glow.setAttribute('fill', 'none');
+        glow.setAttribute('stroke', c.glow);
+        glow.setAttribute('stroke-width', '12');
+        glow.setAttribute('stroke-linecap', 'round');
+        svg.appendChild(glow);
+        
+        // Line
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        line.setAttribute('d', `M ${p1.x} ${p1.y} Q ${midX} ${midY} ${p2.x} ${p2.y}`);
+        line.setAttribute('fill', 'none');
+        line.setAttribute('stroke', c.line);
+        line.setAttribute('stroke-width', '2.5');
+        line.setAttribute('stroke-linecap', 'round');
+        svg.appendChild(line);
+        
+        // Dot at end
+        const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        dot.setAttribute('cx', p2.x);
+        dot.setAttribute('cy', p2.y);
+        dot.setAttribute('r', '4');
+        dot.setAttribute('fill', c.dot);
+        svg.appendChild(dot);
+      });
+    }
+    
+    window.addEventListener('resize', () => drawConnections(currentMode));
+    setTimeout(() => drawConnections(currentMode), 100);
+    
+    // ===== BEHAVIOR =====
+    const inputText = document.getElementById('inputText');
+    const btnProcess = document.getElementById('btnProcess');
+    const signalIcon = document.getElementById('signalIcon');
+    const signalName = document.getElementById('signalName');
+    const signalState = document.getElementById('signalState');
+    const amygdalaStatus = document.getElementById('amygdalaStatus');
+    const keywordsList = document.getElementById('keywordsList');
+    const memoryList = document.getElementById('memoryList');
+    
+    const metrics = { limbic: 42, cortical: 18, prefrontal: 25 };
+    
+    const KW_URGENT = ['urgente', 'urgência', 'emergência', 'perigo', 'crítico', 'imediato', 'socorro'];
+    const KW_PRIORITY = ['importante', 'prioridade', 'crucial', 'essencial', 'atenção'];
+    
+    function detectMode(text) {
+      const t = text.toLowerCase();
+      if (KW_URGENT.some(k => t.includes(k))) return 'urgent';
+      if (KW_PRIORITY.some(k => t.includes(k))) return 'prioridade';
+      return 'neutro';
+    }
+    
+    function updateSignal(mode) {
+      if (mode === 'urgent') {
+        signalIcon.textContent = '⚡';
+        signalIcon.style.background = 'rgba(239, 68, 68, 0.15)';
+        signalIcon.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+        signalName.textContent = 'NOREPINEFRINA';
+        signalState.textContent = 'ESTADO DE ALERTA';
+        amygdalaStatus.innerHTML = '⚡ Stress Intenso';
+        amygdalaStatus.style.background = 'linear-gradient(135deg, #dc2626, #b91c1c)';
+      } else if (mode === 'prioridade') {
+        signalIcon.textContent = '⚡';
+        signalIcon.style.background = 'rgba(245, 158, 11, 0.15)';
+        signalIcon.style.borderColor = 'rgba(245, 158, 11, 0.3)';
+        signalName.textContent = 'DOPAMINA';
+        signalState.textContent = 'FOCO AUMENTADO';
+        amygdalaStatus.innerHTML = '⚡ Atenção Elevada';
+        amygdalaStatus.style.background = 'linear-gradient(135deg, #d97706, #b45309)';
+      } else {
+        signalIcon.textContent = '🧘';
+        signalIcon.style.background = 'rgba(34, 197, 94, 0.15)';
+        signalIcon.style.borderColor = 'rgba(34, 197, 94, 0.3)';
+        signalName.textContent = 'SEROTONINA';
+        signalState.textContent = 'PROCESSAMENTO PADRÃO';
+        amygdalaStatus.innerHTML = '💤 Calibragem';
+        amygdalaStatus.style.background = 'linear-gradient(135deg, #059669, #047857)';
+      }
+    }
+    
+    function updateKeywords(text) {
+      const t = text.toLowerCase();
+      const found = [];
+      [...KW_URGENT, ...KW_PRIORITY].forEach(k => {
+        if (t.includes(k)) found.push(k.toUpperCase());
+      });
+      if (found.length === 0) found.push('NEUTRO', 'PADRÃO');
+      
+      keywordsList.innerHTML = found.slice(0, 4).map(k => `<span class="keyword">${k}</span>`).join('');
+    }
+    
+    function updateMemory(text) {
+      const item = document.createElement('li');
+      item.textContent = text.slice(0, 40) + (text.length > 40 ? '...' : '');
+      memoryList.prepend(item);
+      while (memoryList.children.length > 5) memoryList.lastChild.remove();
+    }
+    
+    function updateMetrics(mode) {
+      if (mode === 'urgent') metrics.prefrontal++;
+      else if (mode === 'prioridade') metrics.cortical++;
+      else metrics.limbic++;
+      
+      document.getElementById('metricLimbic').textContent = metrics.limbic;
+      document.getElementById('metricCortical').textContent = metrics.cortical;
+      document.getElementById('metricPrefrontal').textContent = metrics.prefrontal;
+    }
+    
+    async function process() {
+      const text = inputText.value.trim() || 'Processamento padrão';
+      currentMode = detectMode(text);
+      
+      updateSignal(currentMode);
+      updateKeywords(text);
+      updateMemory(text);
+      updateMetrics(currentMode);
+      drawConnections(currentMode);
+      
+      // Pulse animation
+      Object.values(nodeElements).forEach(n => n.classList.add('pulse'));
+      await new Promise(r => setTimeout(r, 800));
+      Object.values(nodeElements).forEach(n => n.classList.remove('pulse'));
+    }
+    
+    btnProcess.addEventListener('click', process);
+    inputText.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); process(); }
+    });
+    
+    // Control buttons
+    const presets = {
+      neutro: 'Olá, explique como funciona o sistema nervoso.',
+      prioridade: 'Importante: preciso priorizar essa tarefa crucial agora.',
+      urgente: 'URGÊNCIA: perigo iminente, preciso de ajuda agora!'
+    };
+    
+    document.querySelectorAll('.ctrl-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const mode = btn.dataset.mode;
+        inputText.value = presets[mode];
+        process();
+      });
+    });
+  </script>
+</body>
+</html>
