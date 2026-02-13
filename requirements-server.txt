@@ -1,0 +1,23 @@
+# AMYGDALA Server - Requirements
+# ================================
+# Neuromorphic AI Orchestration Layer
+# Patent Pending - Dr. Lucas do Prado Palmiro
+
+# Web framework
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+
+# HTTP client
+httpx>=0.25.0
+
+# OpenAI-compatible client (for Hyperbolic)
+openai>=1.0.0
+
+# Data validation
+pydantic>=2.0.0
+
+# Environment config
+python-dotenv>=1.0.0
+
+# WebSocket support
+websockets>=12.0
